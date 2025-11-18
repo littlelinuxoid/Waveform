@@ -13,13 +13,14 @@ import (
 )
 
 type SongData struct {
-	Artist     string
-	Album      string
-	Length_sec int
-	Cover      *[]byte
-	Player     *oto.Player
-	Genre      string
-	Title      string
+	Artist        string
+	Album         string
+	Length_sec    int
+	Remaining_sec int
+	Cover         *[]byte
+	Player        *oto.Player
+	Genre         string
+	Title         string
 }
 
 const (
@@ -42,7 +43,6 @@ func FromDirectory(ctx *oto.Context, filepath string) *Queue {
 		return strings.ToLower(path.Ext(de.Name())) == ".mp3"
 	})
 
-	log.Println(contents)
 	answer := make([]SongData, len(contents))
 
 	for i, entry := range contents {
@@ -55,7 +55,6 @@ func FromDirectory(ctx *oto.Context, filepath string) *Queue {
 			log.Println(err.Error())
 		}
 		answer[i] = sdata
-		log.Println(answer)
 
 	}
 
@@ -96,13 +95,14 @@ func extract_data(ctx *oto.Context, file *os.File) (SongData, error) {
 	secs := int((info.Size() - int64(len(cover))) * 8 / (LENGTH_COEFF))
 	log.Println("Success")
 	return SongData{
-		Artist:     data.Artist(),
-		Album:      data.Album(),
-		Length_sec: secs,
-		Player:     OneSong(ctx, file.Name()),
-		Cover:      &cover,
-		Genre:      data.Genre(),
-		Title:      data.Title(),
+		Artist:        data.Artist(),
+		Album:         data.Album(),
+		Length_sec:    secs,
+		Remaining_sec: 0,
+		Player:        OneSong(ctx, file.Name()),
+		Cover:         &cover,
+		Genre:         data.Genre(),
+		Title:         data.Title(),
 	}, nil
 
 }
@@ -119,6 +119,7 @@ func OneSong(ctx *oto.Context, filepath string) *oto.Player {
 		panic("I Just Decoded Myself " + err.Error())
 	}
 
+	log.Println(decoded.Length(), decoded.SampleRate())
 	player := ctx.NewPlayer(decoded)
 
 	return player
