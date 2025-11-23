@@ -12,6 +12,12 @@ import (
 	"time"
 )
 
+type SongTimer struct {
+	elapsed int
+	pause   chan bool
+	output  chan int
+}
+
 type Queue struct {
 	inner    []SongData
 	current  *SongData
@@ -64,7 +70,9 @@ func (self *Queue) PlayPrevious() {
 }
 
 func (self *Queue) Init() {
+
 	self.current = &self.inner[0]
+	self.current.Player.SetVolume(0.15)
 }
 
 func (self *Queue) Sort(field func(a *SongData) string) {
@@ -98,7 +106,7 @@ func (self *Queue) Pause() {
 	self.current.Player.Pause()
 }
 
-func (self *Queue) IsPlaying() bool {
+func (self *Queue) is_playing() bool {
 	return self.current.Player.IsPlaying()
 }
 
@@ -112,4 +120,48 @@ func (self *Queue) GetCurrentCover() (*[]byte, error) {
 		return nil, errors.New("Unexpected error while loading cover.")
 	}
 	return self.current.Cover, nil
+}
+func (self *Queue) PlayPause() {
+
+	if !self.is_playing() {
+
+		self.Current().Player.Play()
+	} else {
+		self.Current().Player.Pause()
+
+	}
+}
+func (self *Queue) Timer(out chan int, pause, resume chan bool) {
+	tracked := 0
+
+	for {
+		select {
+		case out <- tracked:
+			tracked++
+			time.Sleep(time.Second)
+		case <-pause:
+			<-pause
+		}
+	}
+
+}
+func (self *Queue) DecreaseVolume() {
+	if vol := self.Current().Player.Volume(); vol >= 0.05 {
+
+		self.Current().Player.SetVolume(vol - 0.05)
+	} else {
+		self.Current().Player.SetVolume(0)
+	}
+}
+func (self *Queue) IncreaseVolume() {
+	if vol := self.Current().Player.Volume(); vol <= 0.95 {
+
+		self.Current().Player.SetVolume(vol + 0.05)
+	} else {
+
+		self.Current().Player.SetVolume(1)
+	}
+}
+func (self *Queue) Volume() float64 {
+	return self.current.Player.Volume()
 }

@@ -1,28 +1,19 @@
 package gui
 
 import (
+	audio "Waveform/audio"
+	"Waveform/audio/tools"
+	"log"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 
-	audio "Waveform/audio"
-	// "Waveform/audio/tools"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"log"
 )
 
-func getimage(q *audio.Queue) *canvas.Image {
-
-	cover, err := q.GetCurrentCover()
-	if err != nil {
-		log.Println(err.Error())
-	}
-	image := canvas.NewImageFromResource(fyne.NewStaticResource("huh", *cover))
-	return image
-}
 func Run() {
 
 	app := app.New()
@@ -30,6 +21,33 @@ func Run() {
 	app.Settings().SetTheme(theme.DefaultTheme())
 	window.Resize(fyne.NewSize(1920/2, 1000))
 
+	q := audio.FromDirectory(tools.NewContext(), "./resources")
+	q.Init()
+
+	window.Canvas().SetOnTypedRune(func(r rune) {
+		switch r {
+		case ' ':
+			q.PlayPause()
+			log.Println("Pause")
+		case '+':
+			q.IncreaseVolume()
+			log.Printf("Volume Increased, new volume: %d", int(q.Volume()*100))
+		case '-':
+			q.DecreaseVolume()
+			log.Printf("Volume Decreased, new volume: %d", int(q.Volume()*100))
+		case 'n':
+			q.PlayNext()
+			log.Println("Next Song")
+		case 'p':
+			q.PlayPrevious()
+			log.Println("Previous Song")
+
+		case 'r':
+			q.Randomize()
+			log.Println("Randomized!")
+		}
+
+	})
 	timer := widget.NewSlider(0, 100)
 
 	// image := getimage(q)
