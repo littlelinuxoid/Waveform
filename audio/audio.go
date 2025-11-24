@@ -13,14 +13,13 @@ import (
 )
 
 type SongData struct {
-	Artist        string
-	Album         string
-	Length_sec    int
-	Remaining_sec int
-	Cover         *[]byte
-	Player        *oto.Player
-	Genre         string
-	Title         string
+	Artist     string
+	Album      string
+	Length_sec int
+	Cover      *[]byte
+	Player     *oto.Player
+	Genre      string
+	Title      string
 }
 
 const (
@@ -60,7 +59,6 @@ func FromDirectory(ctx *oto.Context, filepath string) *Queue {
 
 	q := &Queue{
 		inner:    answer,
-		len:      len(answer),
 		position: 0,
 		current:  nil,
 	}
@@ -95,14 +93,13 @@ func extract_data(ctx *oto.Context, file *os.File) (SongData, error) {
 	secs := int((info.Size() - int64(len(cover))) * 8 / (LENGTH_COEFF))
 	log.Println("Success")
 	return SongData{
-		Artist:        data.Artist(),
-		Album:         data.Album(),
-		Length_sec:    secs,
-		Remaining_sec: 0,
-		Player:        OneSong(ctx, file.Name()),
-		Cover:         &cover,
-		Genre:         data.Genre(),
-		Title:         data.Title(),
+		Artist:     data.Artist(),
+		Album:      data.Album(),
+		Length_sec: secs,
+		Player:     OneSong(ctx, file.Name()),
+		Cover:      &cover,
+		Genre:      data.Genre(),
+		Title:      data.Title(),
 	}, nil
 
 }

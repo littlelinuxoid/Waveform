@@ -2,34 +2,37 @@ package audio
 
 import (
 	// "Waveform/audio/tools"
+	"Waveform/audio/tools"
 	"cmp"
 	"errors"
 	"io"
 	"log"
 	"math/rand"
 	"slices"
+
 	// "sort"
 	"time"
 )
 
 type SongTimer struct {
-	elapsed int
-	pause   chan bool
-	output  chan int
+	elapsed         int
+	pause, shutdown chan bool
+	output          chan int
 }
 
 type Queue struct {
-	inner    []SongData
-	current  *SongData
-	position int
-	len      int
+	ranomized bool
+	current   *SongData
+	position  int
+	timer     *SongTimer
+	inner     []SongData
 }
 
 func (self *Queue) PlayNext() {
-	self.position = (self.position + 1) % (self.len)
+	self.position = (self.position + 1) % (len(self.inner))
 	if self.current != nil {
 
-		self.ResetCurrent()
+		self.reset_current()
 		self.current = &self.inner[self.position]
 		_, err := self.current.Player.Seek(0, io.SeekStart)
 		if err != nil {
@@ -43,7 +46,11 @@ func (self *Queue) PlayNext() {
 	log.Printf("Currently Playing: %s", self.Current().Title)
 
 }
-func (self *Queue) ResetCurrent() {
+func (self *Queue) GetTrackList() []string {
+	return tools.Map(self.inner, func(a SongData) string { return a.Title })
+}
+
+func (self *Queue) reset_current() {
 	self.current.Player.Pause()
 	self.current.Player.Seek(0, io.SeekStart)
 }
@@ -55,7 +62,7 @@ func (self *Queue) PlayPrevious() {
 		}
 
 	} else {
-		self.ResetCurrent()
+		self.reset_current()
 		self.position -= 1
 		self.current = &self.inner[self.position]
 		_, err := self.current.Player.Seek(0, io.SeekStart)
@@ -73,6 +80,7 @@ func (self *Queue) Init() {
 
 	self.current = &self.inner[0]
 	self.current.Player.SetVolume(0.15)
+	self.timer = new_timer()
 }
 
 func (self *Queue) Sort(field func(a *SongData) string) {
@@ -82,7 +90,7 @@ func (self *Queue) Sort(field func(a *SongData) string) {
 	})
 }
 func (self *Queue) Length() int {
-	return self.len
+	return len(self.inner)
 }
 func (self *Queue) Current() *SongData {
 	return self.current
@@ -99,6 +107,7 @@ func (self *Queue) Randomize() {
 	})
 	self.inner = slices.Insert(tmp, 0, self.inner[0])
 	self.current = &self.inner[0]
+	self.ranomized = true
 
 }
 
@@ -131,18 +140,34 @@ func (self *Queue) PlayPause() {
 
 	}
 }
-func (self *Queue) Timer(out chan int, pause, resume chan bool) {
-	tracked := 0
 
-	for {
-		select {
-		case out <- tracked:
-			tracked++
-			time.Sleep(time.Second)
-		case <-pause:
-			<-pause
+func (self *SongTimer) ResetTimer() {
+	self.shutdown <- true
+	self.elapsed = 0
+}
+func (self *SongTimer) SetTimer(until int) {
+	go func() {
+		defer func() {
+			self.output <- -1
+		}()
+		elapsed := 0
+		for elapsed <= until {
+			select {
+			case self.output <- elapsed:
+				elapsed++
+				time.Sleep(time.Second)
+			case <-self.pause:
+				<-self.pause
+			case <-self.shutdown:
+				return
+			default:
+				log.Fatalln("This code should be unreachable! Looks like the timer channel has been overflown.")
+
+			}
+
 		}
-	}
+
+	}()
 
 }
 func (self *Queue) DecreaseVolume() {
@@ -164,4 +189,15 @@ func (self *Queue) IncreaseVolume() {
 }
 func (self *Queue) Volume() float64 {
 	return self.current.Player.Volume()
+}
+func (self *Queue) IsRandomized() bool {
+	return self.ranomized
+}
+func new_timer() *SongTimer {
+	return &SongTimer{
+
+		elapsed: 0,
+		output:  make(chan int, 1),
+		pause:   make(chan bool),
+	}
 }

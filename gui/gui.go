@@ -14,6 +14,47 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+func get_mappings(q *audio.Queue) func(r rune) {
+
+	return func(r rune) {
+
+		switch r {
+		case ' ':
+			q.PlayPause()
+			log.Println("Pause")
+		case '+':
+			q.IncreaseVolume()
+			log.Printf("Volume Increased, new volume: %.1f", q.Volume()*100)
+		case '-':
+			q.DecreaseVolume()
+			log.Printf("Volume Decreased, new volume: %.1f", q.Volume()*100)
+		case 'n':
+			q.PlayNext()
+			log.Println("Next Song")
+		case 'p':
+			q.PlayPrevious()
+			log.Println("Previous Song")
+
+		case 'r':
+			if !q.IsRandomized() {
+
+				q.Randomize()
+				log.Println("Randomized!")
+			} else {
+				log.Println("Sorted Back!")
+
+				q.Sort(func(a *audio.SongData) string { return a.Title })
+
+			}
+			log.Println("New Order:", q.GetTrackList())
+
+		case 't':
+
+		}
+
+	}
+
+}
 func Run() {
 
 	app := app.New()
@@ -24,33 +65,10 @@ func Run() {
 	q := audio.FromDirectory(tools.NewContext(), "./resources")
 	q.Init()
 
-	window.Canvas().SetOnTypedRune(func(r rune) {
-		switch r {
-		case ' ':
-			q.PlayPause()
-			log.Println("Pause")
-		case '+':
-			q.IncreaseVolume()
-			log.Printf("Volume Increased, new volume: %d", int(q.Volume()*100))
-		case '-':
-			q.DecreaseVolume()
-			log.Printf("Volume Decreased, new volume: %d", int(q.Volume()*100))
-		case 'n':
-			q.PlayNext()
-			log.Println("Next Song")
-		case 'p':
-			q.PlayPrevious()
-			log.Println("Previous Song")
+	window.Canvas().SetOnTypedRune(get_mappings(q))
 
-		case 'r':
-			q.Randomize()
-			log.Println("Randomized!")
-		}
-
-	})
 	timer := widget.NewSlider(0, 100)
 
-	// image := getimage(q)
 	btplay := widget.NewButton("  ", nil)
 	btplay.OnTapped = func() {
 	}
