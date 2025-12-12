@@ -3,15 +3,13 @@ package gui
 import (
 	audio "Waveform/audio"
 	"Waveform/audio/tools"
-	"log"
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
-
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"log"
 )
 
 func get_mappings(q *audio.Queue) func(r rune) {
@@ -21,7 +19,6 @@ func get_mappings(q *audio.Queue) func(r rune) {
 		switch r {
 		case ' ':
 			q.PlayPause()
-			log.Println("Pause")
 		case '+':
 			q.IncreaseVolume()
 			log.Printf("Volume Increased, new volume: %.1f", q.Volume()*100)
@@ -48,8 +45,6 @@ func get_mappings(q *audio.Queue) func(r rune) {
 			}
 			log.Println("New Order:", q.GetTrackList())
 
-		case 't':
-
 		}
 
 	}
@@ -58,23 +53,20 @@ func get_mappings(q *audio.Queue) func(r rune) {
 func Run() {
 
 	app := app.New()
+
 	window := app.NewWindow("Waveform")
 	app.Settings().SetTheme(theme.DefaultTheme())
 	window.Resize(fyne.NewSize(1920/2, 1000))
-
 	q := audio.FromDirectory(tools.NewContext(), "./resources")
 	q.Init()
 
 	window.Canvas().SetOnTypedRune(get_mappings(q))
-
-	timer := widget.NewSlider(0, 100)
 
 	btplay := widget.NewButton("  ", nil)
 	btplay.OnTapped = func() {
 	}
 	btnext := widget.NewButton(" 󰒭 ", nil)
 	btnext.OnTapped = func() {
-
 	}
 	btprev := widget.NewButton(" 󰒮 ", func() {
 
@@ -82,7 +74,6 @@ func Run() {
 
 	inner := container.NewGridWithRows(3,
 
-		timer,
 		container.New(layout.NewGridLayoutWithColumns(3),
 			btprev,
 			btplay,

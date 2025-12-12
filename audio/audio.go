@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/bogem/id3v2/v2"
 	"github.com/ebitengine/oto/v3"
@@ -13,13 +14,15 @@ import (
 )
 
 type SongData struct {
+	Player *oto.Player
+
 	Artist     string
-	Album      string
 	Length_sec int
+	Elapsed    int
 	Cover      *[]byte
-	Player     *oto.Player
 	Genre      string
 	Title      string
+	Album      string
 }
 
 const (
@@ -42,25 +45,27 @@ func FromDirectory(ctx *oto.Context, filepath string) *Queue {
 		return strings.ToLower(path.Ext(de.Name())) == ".mp3"
 	})
 
-	answer := make([]SongData, len(contents))
+	songs := make([]SongData, len(contents))
 
 	for i, entry := range contents {
 		f, err := os.Open(filepath + "/" + entry.Name())
 		if err != nil {
 			log.Println(err.Error())
 		}
-		sdata, err := extract_data(ctx, f)
+		song, err := extract_data(ctx, f)
 		if err != nil {
 			log.Println(err.Error())
 		}
-		answer[i] = sdata
+		songs[i] = song
 
 	}
 
+	var pausemu, changedmu sync.Mutex
 	q := &Queue{
-		inner:    answer,
+		inner:    songs,
 		position: 0,
-		current:  nil,
+		Pause:    sync.NewCond(&pausemu),
+		Changed:  sync.NewCond(&changedmu),
 	}
 	return q
 }
@@ -105,7 +110,6 @@ func extract_data(ctx *oto.Context, file *os.File) (SongData, error) {
 }
 
 func OneSong(ctx *oto.Context, filepath string) *oto.Player {
-	// log.Printf("OneSong is called on %s\n", filepath)
 	file, err := os.Open(filepath)
 	if err != nil {
 		panic("I just shit myself" + err.Error())
@@ -116,8 +120,8 @@ func OneSong(ctx *oto.Context, filepath string) *oto.Player {
 		panic("I Just Decoded Myself " + err.Error())
 	}
 
-	log.Println(decoded.Length(), decoded.SampleRate())
 	player := ctx.NewPlayer(decoded)
+
 
 	return player
 }
